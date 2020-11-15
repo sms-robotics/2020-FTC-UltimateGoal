@@ -30,6 +30,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import android.graphics.Bitmap;
+import java.lang.reflect.Array;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraManager;
@@ -125,6 +126,8 @@ public class ConceptWebcam extends LinearOpMode {
      * if you're curious): no knowledge of multi-threading is needed here. */
     private android.os.Handler callbackHandler;
 
+
+
     //----------------------------------------------------------------------------------------------
     // Main OpMode entry
     //----------------------------------------------------------------------------------------------
@@ -180,8 +183,8 @@ public class ConceptWebcam extends LinearOpMode {
     /** Do something with the frame */
     private void onNewFrame(Bitmap frame) {
         saveBitmap(frame);
-        int pixelsFound = findRings(frame);
-        Bitmap orangeFiltered = filterOrange(frame);
+        ExportArrays pixelsFound = findRings(frame);
+        Bitmap orangeFiltered = filterOrange(frame, pixelsFound);
         saveBitmap(orangeFiltered);
 
         telemetry.addData("Ring pixels seen: ", pixelsFound);
@@ -242,20 +245,20 @@ public class ConceptWebcam extends LinearOpMode {
                         /** The session is ready to go. Start requesting frames */
                         final CameraCaptureRequest captureRequest = camera.createCaptureRequest(imageFormat, size, fps);
                         session.startCapture(captureRequest,
-                            new CameraCaptureSession.CaptureCallback() {
-                                @Override public void onNewFrame(CameraCaptureSession session, CameraCaptureRequest request, CameraFrame cameraFrame) {
-                                    /** A new frame is available. The frame data has <em>not</em> been copied for us, and we can only access it
-                                     * for the duration of the callback. So we copy here manually. */
-                                    Bitmap bmp = captureRequest.createEmptyBitmap();
-                                    cameraFrame.copyToBitmap(bmp);
-                                    frameQueue.offer(bmp);
-                                }
-                            },
-                            Continuation.create(callbackHandler, new CameraCaptureSession.StatusCallback() {
-                                @Override public void onCaptureSequenceCompleted(CameraCaptureSession session, CameraCaptureSequenceId cameraCaptureSequenceId, long lastFrameNumber) {
-                                    RobotLog.ii(TAG, "capture sequence %s reports completed: lastFrame=%d", cameraCaptureSequenceId, lastFrameNumber);
-                                }
-                            })
+                                new CameraCaptureSession.CaptureCallback() {
+                                    @Override public void onNewFrame(CameraCaptureSession session, CameraCaptureRequest request, CameraFrame cameraFrame) {
+                                        /** A new frame is available. The frame data has <em>not</em> been copied for us, and we can only access it
+                                         * for the duration of the callback. So we copy here manually. */
+                                        Bitmap bmp = captureRequest.createEmptyBitmap();
+                                        cameraFrame.copyToBitmap(bmp);
+                                        frameQueue.offer(bmp);
+                                    }
+                                },
+                                Continuation.create(callbackHandler, new CameraCaptureSession.StatusCallback() {
+                                    @Override public void onCaptureSequenceCompleted(CameraCaptureSession session, CameraCaptureSequenceId cameraCaptureSequenceId, long lastFrameNumber) {
+                                        RobotLog.ii(TAG, "capture sequence %s reports completed: lastFrame=%d", cameraCaptureSequenceId, lastFrameNumber);
+                                    }
+                                })
                         );
                         synchronizer.finish(session);
                     } catch (CameraException|RuntimeException e) {
@@ -319,17 +322,8 @@ public class ConceptWebcam extends LinearOpMode {
         return false;
     }
 
-    private Bitmap filterOrange(Bitmap picture) {
+    private Bitmap filterOrange(Bitmap picture, ExportArrays exportArrays) {
         Bitmap filtered = picture.copy(picture.getConfig(), true);
-
-        class OrangeCounterPair {
-            int left = 0;
-            int up = 0;
-        }
-
-        OrangeCounterPair pairs[][] = new OrangeCounterPair[filtered.getWidth()][filtered.getHeight()];
-
-
 
         for (int i = 0; i < picture.getWidth(); i++) {
             for (int j = 0; j < picture.getHeight(); j++) {
@@ -338,12 +332,16 @@ public class ConceptWebcam extends LinearOpMode {
                 int red = Color.red(pixel);
                 int green = Color.red(pixel);
 
-                if(red > blue+COLOR_THRESHOLD && green > blue+COLOR_THRESHOLD)
+                if(red > blue+COLOR_THRESHOLD && green > blue+COLOR_THRESHOLD && (exportArrays.arrayx3[i][j]+exportArrays.arrayy3[i][j]) > 4)
                 {
-                    pairs[i][j].left = pairs[i][j]
-                    filtered.getPixel(i, j);
-
                     filtered.setPixel(i, j, 0);
+                }
+                else if(red > blue+COLOR_THRESHOLD && green > blue+COLOR_THRESHOLD)
+                {
+                    filtered.setPixel(i, j, Color.rgb(255,0,0));
+                }
+                else{
+                    filtered.setPixel(i, j, Color.rgb(255,255,255));
                 }
             }
         }
@@ -351,8 +349,15 @@ public class ConceptWebcam extends LinearOpMode {
     }
 
 
-    private int findRings(Bitmap picture) {
-        int numFound = 0;
+    private ExportArrays findRings(Bitmap picture) {
+        int[][] arrayx1 = new int[picture.getWidth()][picture.getHeight()];
+        int[][] arrayy1 = new int[picture.getWidth()][picture.getHeight()];
+        int[][] arrayx2 = new int[picture.getWidth()][picture.getHeight()];
+        int[][] arrayy2 = new int[picture.getWidth()][picture.getHeight()];
+        int[][] arrayx3 = new int[picture.getWidth()][picture.getHeight()];
+        int[][] arrayy3 = new int[picture.getWidth()][picture.getHeight()];
+        ExportArrays exportArrays = new ExportArrays(arrayx1, arrayy1, arrayx2, arrayy2, arrayx3, arrayy3);
+
 
         int counter = 0;
         for (int i = 0; i < picture.getWidth(); i++) {
@@ -361,18 +366,58 @@ public class ConceptWebcam extends LinearOpMode {
                 int blue = Color.blue(pixel);
                 int red = Color.red(pixel);
                 int green = Color.red(pixel);
-
                 if(red > blue+COLOR_THRESHOLD && green > blue+COLOR_THRESHOLD)
                 {
                     counter++;
+                    if(i>0)
+                    {
+                        arrayx1[i][j]=arrayx1[i-1][j]+1;
+                    }
+                    if(j>0)
+                    {
+                        arrayy1[i][j]=arrayy1[i][j-1]+1;
+                    }
                     if (counter < 6) {
                         telemetry.addData("RGB: ", "%d, %d, %d", red, green, blue);
                     }
-                    numFound++;
+                }
+                else
+                {
+                    arrayx1[i][j]=0;
+                    arrayy1[i][j]=0;
                 }
             }
         }
-        return numFound;
+        for (int i = picture.getWidth()-1; i >= 0; i--) {
+            for (int j = picture.getHeight()-1; j >= 0; j--) {
+                int pixel = picture.getPixel(i, j);
+                int blue = Color.blue(pixel);
+                int red = Color.red(pixel);
+                int green = Color.red(pixel);
+                if(red > blue+COLOR_THRESHOLD && green > blue+COLOR_THRESHOLD)
+                {
+                    counter++;
+                    if(i<picture.getWidth())
+                    {
+                        arrayx1[i][j]=arrayx1[i+1][j]+1;
+                        arrayx3[i][j]=arrayx2[i][j]+arrayx1[i][j];
+                    }
+                    if(j<picture.getHeight())
+                    {
+                        arrayy1[i][j]=arrayy1[i][j+1]+1;
+                        arrayy3[i][j]=arrayy2[i][j]+arrayy1[i][j];
+                    }
+                }
+                else
+                {
+                    arrayx2[i][j]=0;
+                    arrayy2[i][j]=0;
+                    arrayx3[i][j]=0;
+                    arrayx3[i][j]=0;
+                }
+            }
+        }
+        return exportArrays;
     }
 
     private void saveBitmap(Bitmap bitmap) {
@@ -385,6 +430,24 @@ public class ConceptWebcam extends LinearOpMode {
         } catch (IOException e) {
             RobotLog.ee(TAG, e, "exception in saveBitmap()");
             error("exception saving %s", file.getName());
+        }
+    }
+    class ExportArrays
+    {
+        int[][] arrayx1;
+        int[][] arrayx2;
+        int[][] arrayx3;
+        int[][] arrayy1;
+        int[][] arrayy2;
+        int[][] arrayy3;
+        ExportArrays(int[][] arrayx1, int[][] arrayx2, int[][] arrayx3, int[][] arrayy1, int[][] arrayy2, int[][] arrayy3)
+        {
+            this.arrayx1 = arrayx1;
+            this.arrayx2 = arrayx2;
+            this.arrayx3 = arrayx3;
+            this.arrayy1 = arrayy1;
+            this.arrayy2 = arrayy2;
+            this.arrayy3 = arrayy3;
         }
     }
 }
