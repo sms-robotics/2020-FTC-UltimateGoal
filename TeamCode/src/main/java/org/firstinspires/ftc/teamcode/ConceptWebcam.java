@@ -179,8 +179,10 @@ public class ConceptWebcam extends LinearOpMode {
 
     /** Do something with the frame */
     private void onNewFrame(Bitmap frame) {
-        //saveBitmap(frame);
+        saveBitmap(frame);
         int pixelsFound = findRings(frame);
+        Bitmap orangeFiltered = filterOrange(frame);
+        saveBitmap(orangeFiltered);
 
         telemetry.addData("Ring pixels seen: ", pixelsFound);
         telemetry.update();
@@ -317,6 +319,38 @@ public class ConceptWebcam extends LinearOpMode {
         return false;
     }
 
+    private Bitmap filterOrange(Bitmap picture) {
+        Bitmap filtered = picture.copy(picture.getConfig(), true);
+
+        class OrangeCounterPair {
+            int left = 0;
+            int up = 0;
+        }
+
+        OrangeCounterPair pairs[][] = new OrangeCounterPair[filtered.getWidth()][filtered.getHeight()];
+
+
+
+        for (int i = 0; i < picture.getWidth(); i++) {
+            for (int j = 0; j < picture.getHeight(); j++) {
+                int pixel = picture.getPixel(i, j);
+                int blue = Color.blue(pixel);
+                int red = Color.red(pixel);
+                int green = Color.red(pixel);
+
+                if(red > blue+COLOR_THRESHOLD && green > blue+COLOR_THRESHOLD)
+                {
+                    pairs[i][j].left = pairs[i][j]
+                    filtered.getPixel(i, j);
+
+                    filtered.setPixel(i, j, 0);
+                }
+            }
+        }
+        return filtered;
+    }
+
+
     private int findRings(Bitmap picture) {
         int numFound = 0;
 
@@ -328,7 +362,7 @@ public class ConceptWebcam extends LinearOpMode {
                 int red = Color.red(pixel);
                 int green = Color.red(pixel);
 
-                if(red>blue+COLOR_THRESHOLD&&green>blue+COLOR_THRESHOLD)
+                if(red > blue+COLOR_THRESHOLD && green > blue+COLOR_THRESHOLD)
                 {
                     counter++;
                     if (counter < 6) {
