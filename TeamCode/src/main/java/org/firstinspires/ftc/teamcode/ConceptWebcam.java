@@ -30,29 +30,9 @@
 package org.firstinspires.ftc.teamcode;
 
 import android.graphics.Bitmap;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraManager;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.Camera;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraCaptureSession;
-import java.io.File;
-import org.firstinspires.ftc.robotcore.external.ClassFactory;
-import java.util.concurrent.TimeUnit;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraCharacteristics;
-import org.firstinspires.ftc.robotcore.external.android.util.Size;
-import org.firstinspires.ftc.robotcore.external.function.Continuation;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraCaptureRequest;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraFrame;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraCaptureSequenceId;
-import com.qualcomm.robotcore.util.RobotLog;
-import java.util.Locale;
-import java.util.logging.Handler;
-
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.RobotLog;
@@ -340,7 +320,7 @@ public class ConceptWebcam extends LinearOpMode {
 
                 if(red > blue+COLOR_THRESHOLD && green > blue+COLOR_THRESHOLD)
                 {
-                    pairs[i][j].left = pairs[i][j]
+                    //pairs[i][j].left = pairs[i][j]
                     filtered.getPixel(i, j);
 
                     filtered.setPixel(i, j, 0);
