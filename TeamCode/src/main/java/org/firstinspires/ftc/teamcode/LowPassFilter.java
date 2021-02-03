@@ -3,10 +3,10 @@ package org.firstinspires.ftc.teamcode;
 public class LowPassFilter {
     private double lastOutputValue = Double.NaN;
     private long lastInputTimestamp;
-    private final double rc;
+    private final double rcInMs;
 
-    public LowPassFilter(double rc) {
-        this.rc = rc;
+    public LowPassFilter(double rcInMs) {
+        this.rcInMs = rcInMs;
     }
 
     public double addSample(double inputValue, long inputTimestamp) {
@@ -18,7 +18,7 @@ public class LowPassFilter {
         }
 
         double dt = inputTimestamp - lastInputTimestamp;
-        double alpha = Math.max(0, Math.min(1, ((double)dt) / (dt + this.rc)));
+        double alpha = Math.max(0, Math.min(1, ((double)dt) / (dt + this.rcInMs)));
 
         double outputValue = (inputValue * alpha) + ((1-alpha) * lastOutputValue);
 
