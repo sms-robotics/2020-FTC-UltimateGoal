@@ -5,8 +5,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.RobotLog;
 
-import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
-
 /**
  * Demonstrates OpMode using the VisionManager
  */
@@ -38,20 +36,31 @@ public class GrandUnifiedVisionExample extends LinearOpMode {
         telemetry.addData(">", "Press Play to start op mode");
         telemetry.update();
 
-        state = "Scanning";
+        state = "Do Nothing";
 
         waitForStart();
 
-        webcamScanner.goToStartingPosition();
-        webcamScanner.startScanning();
+        webcamScanner.goToNeutral();
+//        webcamScanner.startScanning();
 
         visionManager.activate();
 
         try {
             while (opModeIsActive()) {
+                if (gamepad1.a) {
+                    webcamScanner.goToStartingPosition();
+                    webcamScanner.startScanning();
+                    state = "Scanning";
+                }
+
+                if (gamepad1.b) {
+                    webcamScanner.goToNeutral();
+                    state = "Do Nothing";
+                }
+
                 //  If we're in the "scanning mode":
                 if (state == "Scanning") {
-                    webcamScanner.loop(1000);
+                    webcamScanner.loop(50);
 
                     if (webcamScanner.isDoneScanning()) {
                         state = "Make Decision";
@@ -71,15 +80,17 @@ public class GrandUnifiedVisionExample extends LinearOpMode {
                 telemetry.addData("Blue Target Visible    ", visionManager.isBlueTargetVisible());
                 telemetry.addData("Last saw Blue Target   ", String.format("%3.2f seconds ago", visionManager.getHowManySecondsAgoSawBlueTarget()));
 
-                telemetry.addData("Red Target Visible     ", visionManager.isRedTargetVisible());
-                telemetry.addData("Last saw Red Target    ", String.format("%3.2f seconds ago", visionManager.getHowManySecondsAgoSawRedTarget()));
+                telemetry.addData("Blue Alliance Visible  ", visionManager.isBlueAllianceVisible());
+                telemetry.addData("Last saw Blue Alliance ", String.format("%3.2f seconds ago", visionManager.getHowManySecondsAgoSawBlueAlliance()));
                 telemetry.addData("% Orange Pixels        ", String.format("%2.3f %%", visionManager.getPercentageOfPixelsThatAreOrange() * 100.0));
 
-                OpenGLMatrix lastComputedLocation = visionManager.getLastComputedLocation();
-                if (lastComputedLocation != null) {
-                    telemetry.addData("Position                        ", lastComputedLocation.formatAsTransform());
-                } else {
+                double[] lastComputedLocation = visionManager.getLastComputedLocationFiltered();
+                if (lastComputedLocation == null) {
                     telemetry.addData("Position                        ", "Unknown");
+                } else {
+                    telemetry.addData("Position X                      ", String.format("%.1f", lastComputedLocation[0]));
+                    telemetry.addData("Position Y                      ", String.format("%.1f", lastComputedLocation[1]));
+                    telemetry.addData("Position Z                      ", String.format("%.1f", lastComputedLocation[2]));
                 }
 
                 telemetry.update();

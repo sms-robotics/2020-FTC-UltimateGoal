@@ -10,7 +10,6 @@ import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.Camera;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraManager;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.internal.camera.calibration.CameraCalibration;
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
@@ -186,16 +185,16 @@ public class VisionManager {
         return (System.currentTimeMillis() - timestamp) / 1000.0;
     }
 
-    public boolean isRedTargetVisible() {
-        return navigator.isCurrentlyVisible(VisionNavigator.LABEL_RED_TARGET);
+    public boolean isBlueAllianceVisible() {
+        return navigator.isCurrentlyVisible(VisionNavigator.LABEL_BLUE_ALLIANCE);
     }
 
     public boolean isBlueTargetVisible() {
         return navigator.isCurrentlyVisible(VisionNavigator.LABEL_BLUE_TARGET);
     }
 
-    public double getHowManySecondsAgoSawRedTarget() {
-        return getHowManySecondsAgoSawSomethingFromNavigator(VisionNavigator.LABEL_RED_TARGET);
+    public double getHowManySecondsAgoSawBlueAlliance() {
+        return getHowManySecondsAgoSawSomethingFromNavigator(VisionNavigator.LABEL_BLUE_ALLIANCE);
     }
 
     public double getHowManySecondsAgoSawBlueTarget() {
@@ -215,7 +214,13 @@ public class VisionManager {
         return ringCountGuesstimator.getPercentageOrangePixels();
     }
 
-    public OpenGLMatrix getLastComputedLocation() {
-        return navigator.getLastComputedLocation();
+    public double[] getLastComputedLocation() {
+        double[] location = navigator.getLastComputedLocationFiltered();
+
+        return location;
+    }
+
+    public double[] getLastComputedLocationFiltered() {
+        return navigator.getLastComputedLocationFiltered();
     }
 }

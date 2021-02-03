@@ -27,8 +27,10 @@ import com.qualcomm.robotcore.hardware.Servo;
  * }
  */
 public class WebcamScanner {
-    static final double STARTING_POSITION = 0.5;
-    static final double SCAN_INCREMENT = 0.1;
+    static final double STARTING_POSITION = 0.70;
+    static final double ENDING_POSITION = 1.0;
+    static final double NEUTRAL_POSITION = 0.75;
+    static final double SCAN_INCREMENT = 0.01;
 
     private Servo servo;
     private long timeSinceLastMove;
@@ -43,6 +45,12 @@ public class WebcamScanner {
     public void startScanning() {
         timeSinceLastMove = 0;
         timeOfLastLoop = 0;
+    }
+
+    public void goToNeutral() {
+        timeSinceLastMove = 0;
+        timeOfLastLoop = 0;
+        servo.setPosition(NEUTRAL_POSITION);
     }
 
     public void goToStartingPosition() {
@@ -73,7 +81,7 @@ public class WebcamScanner {
     }
 
     public boolean isDoneScanning() {
-        if (servo.getPosition() >= 0.95) {
+        if (servo.getPosition() >= ENDING_POSITION) {
             return true;
         }
 

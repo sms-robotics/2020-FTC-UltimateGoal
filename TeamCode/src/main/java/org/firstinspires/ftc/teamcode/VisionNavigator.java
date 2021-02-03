@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.matrices.MatrixF;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
@@ -18,12 +19,27 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+//                   Test Image
+//       {B}             {}
+//  ----------------------------------------- 0
+//  |                                       |
+//  |                                       |
+//  |                                       |
+//  |                    |                  |
+// z|                   -+-                 |
+//  |                    |                  |
+//  |                                       |
+//  |                                       |
+//  |  [.]                                  |
+//  -----------------------------------------
+//              (neg)    0    (pos)
+
 public class VisionNavigator {
     public static final long NEVER_SAW = -1;
     private static final String TAG = "VisionNavigator";
 
     public static final String LABEL_BLUE_TARGET = "BlueTarget";
-    public static final String LABEL_RED_TARGET = "RedTarget";
+    public static final String LABEL_BLUE_ALLIANCE = "BlueAlliance";
 
     /**
      * We use units of mm here because that's the recommended units of measurement for the
@@ -33,8 +49,12 @@ public class VisionNavigator {
      * target configuration files *must* correspond for the math to work out correctly.
      */
     private static final float mmPerInch = 25.4f;
-    private static final float mmBotWidth = 18 * mmPerInch;            // ... or whatever is right for your robot
-    private static final float mmFTCFieldWidth = (12 * 12 - 2) * mmPerInch;   // the FTC field is ~11'10" center-to-center of the glass panels
+    private static final float mmBotWidth       = 18 * mmPerInch;            // ... or whatever is right for your robot
+    private static final float mmFTCFieldWidth  = (12*8 - 2) * mmPerInch;   // the FTC field is ~11'10" center-to-center of the glass panels
+    private static final float mmFTCFieldHeight  = (12*12 - 2) * mmPerInch;   // the FTC field is ~11'10" center-to-center of the glass panels
+    private static final LowPassFilter lpfX = new LowPassFilter(1000);
+    private static final LowPassFilter lpfY = new LowPassFilter(1000);
+    private static final LowPassFilter lpfZ = new LowPassFilter(1000);
 
     private VuforiaTrackables vuforiaUltimateGoalTrackables;
     private List<VuforiaTrackable> trackables;
@@ -42,6 +62,7 @@ public class VisionNavigator {
     private final HashMap<String, Long> lastTimeSeenObject = new HashMap<>();
 
     private OpenGLMatrix lastComputedLocation;
+    private long lastComputedLocationTimestamp;
 
     public void initialize(HardwareMap hardwareMap, VuforiaLocalizer vuforia) {
         /**
@@ -53,15 +74,18 @@ public class VisionNavigator {
          * documentation directory.
          */
         vuforiaUltimateGoalTrackables = vuforia.loadTrackablesFromAsset("UltimateGoal");
-        VuforiaTrackable blueTarget = vuforiaUltimateGoalTrackables.get(0);
+        VuforiaTrackable blueTarget  = vuforiaUltimateGoalTrackables.get(0);
         blueTarget.setName(LABEL_BLUE_TARGET);
 
-        VuforiaTrackable redTarget = vuforiaUltimateGoalTrackables.get(1);
-        redTarget.setName(LABEL_RED_TARGET);
+        VuforiaTrackable blueAlliance = vuforiaUltimateGoalTrackables.get(3);
+        blueAlliance.setName(LABEL_BLUE_ALLIANCE);
 
         /** For convenience, gather together all the trackable objects in one easily-iterable collection */
         trackables = new ArrayList<VuforiaTrackable>();
-        trackables.addAll(vuforiaUltimateGoalTrackables);
+        trackables.add(blueTarget);
+        trackables.add(blueAlliance);
+
+//        trackables.addAll(vuforiaUltimateGoalTrackables);
 
         for (VuforiaTrackable trackable : trackables) {
             trackableMap.put(trackable.getName(), trackable);
@@ -102,14 +126,6 @@ public class VisionNavigator {
          *
          * </ol>
          *
-         * This example places the "stones" image on the perimeter wall to the Left
-         *  of the Red Driver station wall.  Similar to the Red Beacon Location on the Res-Q
-         *
-         * This example places the "chips" image on the perimeter wall to the Right
-         *  of the Blue Driver station.  Similar to the Blue Beacon Location on the Res-Q
-         *
-         * See the doc folder of this project for a description of the field Axis conventions.
-         *
          * Initially the target is conceptually lying at the origin of the field's coordinate system
          * (the center of the field), facing up.
          *
@@ -118,37 +134,36 @@ public class VisionNavigator {
          * In a real situation we'd also account for the vertical (Z) offset of the target,
          * but for simplicity, we ignore that here; for a real robot, you'll want to fix that.
          *
-         * To place the Stones Target on the Red Audience wall:
+         * To Blue Target on the back wall:
          * - First we rotate it 90 around the field's X axis to flip it upright
-         * - Then we rotate it  90 around the field's Z access to face it away from the audience.
+         * - Then we rotate it 90 around the field's Z access to face it away from the audience.
          * - Finally, we translate it back along the X axis towards the red audience wall.
          */
-        OpenGLMatrix redTargetLocationOnField = OpenGLMatrix
-            /* Then we translate the target off to the RED WALL. Our translation here
+        OpenGLMatrix blueTargetLocationOnField = OpenGLMatrix
+            /* Then we translate the target off to the BLUE WALL. Our translation here
             is a negative translation in X.*/
-            .translation(-mmFTCFieldWidth / 2, 0, 0)
+            .translation((3 * 12 * mmPerInch), 0, 0)
             .multiplied(Orientation.getRotationMatrix(
                 /* First, in the fixed (field) coordinate system, we rotate 90deg in X, then 90 in Z */
                 AxesReference.EXTRINSIC, AxesOrder.XZX,
-                AngleUnit.DEGREES, 90, 90, 0));
-        redTarget.setLocation(redTargetLocationOnField);
-        RobotLog.ii(TAG, "Red Target=%s", format(redTargetLocationOnField));
+                AngleUnit.DEGREES, 0, 0, 0));
+        blueTarget.setLocation(blueTargetLocationOnField);
+        RobotLog.ii(TAG, "Blue Target=%s", format(blueTargetLocationOnField));
 
         /*
-         * To place the Stones Target on the Blue Audience wall:
          * - First we rotate it 90 around the field's X axis to flip it upright
          * - Finally, we translate it along the Y axis towards the blue audience wall.
          */
-        OpenGLMatrix blueTargetLocationOnField = OpenGLMatrix
+        OpenGLMatrix blueAllianceLocationOnField = OpenGLMatrix
             /* Then we translate the target off to the Blue Audience wall.
             Our translation here is a positive translation in Y.*/
-            .translation(0, mmFTCFieldWidth / 2, 0)
+            .translation(0, 0, 0)
             .multiplied(Orientation.getRotationMatrix(
                 /* First, in the fixed (field) coordinate system, we rotate 90deg in X */
                 AxesReference.EXTRINSIC, AxesOrder.XZX,
-                AngleUnit.DEGREES, 90, 0, 0));
-        blueTarget.setLocation(blueTargetLocationOnField);
-        RobotLog.ii(TAG, "Blue Target=%s", format(blueTargetLocationOnField));
+                AngleUnit.DEGREES, 0, 0, 0));
+        blueAlliance.setLocation(blueAllianceLocationOnField);
+        RobotLog.ii(TAG, "Blue Alliance=%s", format(blueAllianceLocationOnField));
 
         /**
          * Create a transformation matrix describing where the phone is on the robot. Here, we
@@ -163,10 +178,10 @@ public class VisionNavigator {
          * plane) is then CCW, as one would normally expect from the usual classic 2D geometry.
          */
         OpenGLMatrix phoneLocationOnRobot = OpenGLMatrix
-            .translation(mmBotWidth / 2, 0, 0)
+            .translation(0, 0,0)
             .multiplied(Orientation.getRotationMatrix(
                 AxesReference.EXTRINSIC, AxesOrder.YZY,
-                AngleUnit.DEGREES, -90, 0, 0));
+                AngleUnit.DEGREES, 0, 0, 0));
         RobotLog.ii(TAG, "phone=%s", format(phoneLocationOnRobot));
 
         /**
@@ -174,8 +189,8 @@ public class VisionNavigator {
          * listener is a {@link VuforiaTrackableDefaultListener} and can so safely cast because
          * we have not ourselves installed a listener of a different type.
          */
-        ((VuforiaTrackableDefaultListener) redTarget.getListener()).setPhoneInformation(phoneLocationOnRobot, VuforiaLocalizer.CameraDirection.BACK);
-        ((VuforiaTrackableDefaultListener) blueTarget.getListener()).setPhoneInformation(phoneLocationOnRobot, VuforiaLocalizer.CameraDirection.BACK);
+        ((VuforiaTrackableDefaultListener)blueTarget.getListener()).setPhoneInformation(phoneLocationOnRobot, VuforiaLocalizer.CameraDirection.BACK);
+        ((VuforiaTrackableDefaultListener)blueAlliance.getListener()).setPhoneInformation(phoneLocationOnRobot, VuforiaLocalizer.CameraDirection.BACK);
     }
 
     public void activate() {
@@ -211,9 +226,21 @@ public class VisionNavigator {
                 lastTimeSeenObject.put(trackable.getName(), System.currentTimeMillis());
             }
 
-            OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
+            OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
             if (robotLocationTransform != null) {
                 lastComputedLocation = robotLocationTransform;
+                lastComputedLocationTimestamp = System.currentTimeMillis();
+
+                VectorF translation = lastComputedLocation.getTranslation();
+
+                float[] locationData = translation.getData();
+                float x = locationData[0];
+                float y = locationData[1];
+                float z = locationData[2];
+
+                lpfX.addSample(x, lastComputedLocationTimestamp);
+                lpfY.addSample(y, lastComputedLocationTimestamp);
+                lpfZ.addSample(z, lastComputedLocationTimestamp);
             }
         }
     }
@@ -221,7 +248,7 @@ public class VisionNavigator {
     public boolean isCurrentlyVisible(String objectLabel) {
         VuforiaTrackable vuforiaTrackable = trackableMap.get(objectLabel);
         if (vuforiaTrackable != null) {
-            return ((VuforiaTrackableDefaultListener) vuforiaTrackable.getListener()).isVisible();
+            return ((VuforiaTrackableDefaultListener)vuforiaTrackable.getListener()).isVisible();
         }
 
         return false;
@@ -233,5 +260,18 @@ public class VisionNavigator {
 
     public long getLastTimeObjectSeen(String objectLabel) {
         return lastTimeSeenObject.getOrDefault(objectLabel, NEVER_SAW);
+    }
+
+    public double[] getLastComputedLocationFiltered() {
+        OpenGLMatrix lastComputedLocation = getLastComputedLocation();
+        if (lastComputedLocation == null) {
+            return null;
+        }
+
+        return new double[] {
+            lpfX.getValue(),
+            lpfY.getValue(),
+            lpfZ.getValue()
+        };
     }
 }
