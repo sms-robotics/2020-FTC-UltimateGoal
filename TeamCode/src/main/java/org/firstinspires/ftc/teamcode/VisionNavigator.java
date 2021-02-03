@@ -19,20 +19,25 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+// The field:
+//
 //                   Test Image
-//       {B}             {}
-//  ----------------------------------------- 0
-//  |                                       |
-//  |                                       |
-//  |                                       |
-//  |                    |                  |
-// z|                   -+-                 |
-//  |                    |                  |
-//  |                                       |
-//  |                                       |
-//  |  [.]                                  |
-//  -----------------------------------------
-//              (neg)    0    (pos)
+// (0,0)   {B}
+//     ---------------------------------------
+//     |                                     |
+//     |                                     |
+//     |                                     |
+//     |                  |                  |
+//    z|                 -+-                 |
+//     |                  |                  |
+// {ba}|                                     |
+//     |     |   |                           |
+//     |  [.]|   |                           |
+//     ---------------------------------------
+//
+// [.] = bot starting
+// {B} is about 3ft from the left or around 914mm.
+//
 
 public class VisionNavigator {
     public static final long NEVER_SAW = -1;
