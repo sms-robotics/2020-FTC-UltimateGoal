@@ -18,8 +18,7 @@ public class LowPassFilter {
         }
 
         double dt = inputTimestamp - lastInputTimestamp;
-        double rc = 1000;
-        double alpha = Math.max(0, Math.min(1, ((double)dt) / (dt + rc)));
+        double alpha = Math.max(0, Math.min(1, ((double)dt) / (dt + this.rc)));
 
         double outputValue = (inputValue * alpha) + ((1-alpha) * lastOutputValue);
 
