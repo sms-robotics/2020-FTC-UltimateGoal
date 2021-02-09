@@ -46,8 +46,8 @@ public class BotSettings {
     // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
     // should be set to the value of the images used to create the TensorFlow Object Detection model
     // (typically 1.78 or 16/9).
-    private double tensorFlowCameraMagnification = 1;
-    private double tensorFlowCameraAspectRatio = 16.9; // Default to 4:3
+    private double tensorFlowCameraMagnification = 3;
+    private double tensorFlowCameraAspectRatio = 16/9; // Default to 4:3
 
     private String webcamName = "Webcam 1";
 
